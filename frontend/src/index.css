@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 transition-colors duration-200;
+    font-family: 'Inter', sans-serif;
+  }
+
+  body.dark {
+    @apply bg-[#0b0f19] text-slate-100;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full dark:bg-slate-700;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* FullCalendar Theme Styling Customizations */
+.fc {
+  --fc-button-bg-color: #1e3a8a;
+  --fc-button-border-color: #1e3a8a;
+  --fc-button-hover-bg-color: #0f172a;
+  --fc-button-hover-border-color: #0f172a;
+  --fc-button-active-bg-color: #0f172a;
+  --fc-button-active-border-color: #0f172a;
+  --fc-event-border-color: transparent;
+  --fc-today-bg-color: rgba(249, 115, 22, 0.08);
+  font-family: inherit;
+}
+
+.dark .fc {
+  --fc-page-bg-color: #0f172a;
+  --fc-border-color: #1e293b;
+  --fc-neutral-bg-color: #1e293b;
+  --fc-today-bg-color: rgba(249, 115, 22, 0.15);
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+  border: 1px solid #e2e8f0;
+}
+
+.dark .fc-theme-standard td, .dark .fc-theme-standard th {
+  border: 1px solid #1e293b;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-lg font-bold text-slate-800 dark:text-white md:text-xl;
+}
+
+.fc .fc-button {
+  @apply px-3 py-1.5 font-medium rounded-lg text-xs md:text-sm capitalize transition-all duration-150 shadow-sm;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active, 
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: #f97316 !important;
+  border-color: #f97316 !important;
+}
+
+.fc-event {
+  @apply cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:shadow-md rounded-md p-0.5 text-xs font-medium;
+}
+
+.fc-col-header-cell {
+  @apply py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs uppercase tracking-wider;
+}

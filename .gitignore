@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Local Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Local Mock Database folder
+backend/data/
+
+# Vite production build output
+dist/
+dist-ssr/
+
+# IDE files and OS metadata
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
