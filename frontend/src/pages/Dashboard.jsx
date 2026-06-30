@@ -14,7 +14,8 @@ import {
   ArrowRight,
   UserCheck,
   Building,
-  GraduationCap
+  GraduationCap,
+  History
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
