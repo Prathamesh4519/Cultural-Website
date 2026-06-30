@@ -115,7 +115,8 @@ const seedDatabase = async () => {
           facilities: ['Soundproof Panels', 'Stage Platform', 'Spotlights', 'Full-Length Mirrors', 'Instrument Amplifiers', 'Surround Sound', 'AC'],
           timings: { open: '08:00', close: '21:00' },
           maintenanceDays: ['Sunday'],
-          maxDuration: 3
+          maxDuration: 3,
+          isActive: true
         }
       ];
       await Room.insertMany(defaultRooms);

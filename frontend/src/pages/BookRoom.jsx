@@ -36,7 +36,7 @@ const BookRoom = () => {
           api.get('/rooms'),
           api.get('/equipment')
         ]);
-        const activeRooms = roomsRes.data.filter(r => r.isActive);
+        const activeRooms = roomsRes.data.filter(r => r.isActive !== false);
         setRooms(activeRooms);
         setEquipmentList(equipRes.data);
         if (activeRooms.length === 1) {
