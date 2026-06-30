@@ -163,41 +163,11 @@ const BookRoom = () => {
                   </div>
                 </div>
 
-                {/* Section 2: Room Selection */}
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-3">2. Choose Cultural Room</h4>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-350">Select Room *</label>
-                      <select
-                        value={selectedRoomId}
-                        onChange={(e) => setSelectedRoomId(e.target.value)}
-                        required
-                        className="w-full mt-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent py-2.5 px-3 text-xs text-slate-850 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-orange"
-                      >
-                        <option value="" className="dark:bg-slate-900">-- Select Room --</option>
-                        {rooms.map(r => (
-                          <option key={r._id} value={r._id} className="dark:bg-slate-900">{r.name}</option>
-                        ))}
-                      </select>
-                    </div>
 
-                    {/* Room Info Hint Panel */}
-                    {activeRoom && (
-                      <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/10 dark:border-blue-900/30 dark:bg-brand-navy/5 text-xs space-y-1.5">
-                        <p><strong className="text-slate-400">Timings:</strong> {activeRoom.timings.open} to {activeRoom.timings.close}</p>
-                        <p><strong className="text-slate-400">Max Duration Limit:</strong> {activeRoom.maxDuration} hours</p>
-                        <p><strong className="text-slate-400">Maintenance Days:</strong> {activeRoom.maintenanceDays.join(', ') || 'None'}</p>
-                        <p><strong className="text-slate-400">Capacity Size:</strong> Max {activeRoom.capacity} participants</p>
-                        <p><strong className="text-slate-400">Facilities:</strong> {activeRoom.facilities.join(', ')}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Section 3: Time Slot Parameters */}
+                {/* Section 2: Time Slot Parameters */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-3">3. Schedule Time Slot</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-3">2. Schedule Time Slot</h4>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
                       <label className="block text-xs font-semibold text-slate-650 dark:text-slate-300">Date *</label>
@@ -250,9 +220,9 @@ const BookRoom = () => {
                   </div>
                 </div>
 
-                {/* Section 4: Details & Equipment */}
+                {/* Section 3: Purpose & Details */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-3">4. Purpose & Equipment Requirements</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-3">3. Purpose & Details</h4>
                   
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
@@ -291,52 +261,6 @@ const BookRoom = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* Equipment Counters */}
-                  {equipmentList.length > 0 && (
-                    <div className="mt-4">
-                      <label className="block text-xs font-bold text-slate-650 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                        <Wrench size={14} className="text-brand-orange" />
-                        Requested Equipments (Optional)
-                      </label>
-                      
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {equipmentList.map((eq) => {
-                          const qtySelected = selectedEquipment[eq._id] || 0;
-                          return (
-                            <div key={eq._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/20 text-xs">
-                              <span className="truncate pr-1">
-                                <p className="font-semibold text-slate-700 dark:text-slate-300">{eq.name}</p>
-                                <p className="text-[9px] text-slate-400">Total Available: {eq.totalQuantity}</p>
-                              </span>
-                              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded px-1.5 py-0.5 shadow-sm">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEquipmentChange(eq._id, qtySelected - 1)}
-                                  className="text-xs font-bold text-slate-500 hover:text-brand-orange"
-                                >
-                                  -
-                                </button>
-                                <span className="font-bold w-4 text-center">{qtySelected}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (qtySelected >= eq.totalQuantity) {
-                                      return toast.error(`Maximum quantity available is ${eq.totalQuantity}`);
-                                    }
-                                    handleEquipmentChange(eq._id, qtySelected + 1);
-                                  }}
-                                  className="text-xs font-bold text-slate-500 hover:text-brand-orange"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Additional Notes */}
                   <div className="mt-4">
