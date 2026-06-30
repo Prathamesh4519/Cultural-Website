@@ -38,10 +38,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
     const user = await User.create({
       name,
       email,
@@ -50,26 +46,31 @@ router.post('/register', async (req, res) => {
       department,
       clubName,
       contactNumber,
-      verificationOtp: otp,
-      otpExpires,
-      isVerified: false
+      isVerified: true // Auto-verify instantly
     });
-
-    // Send email with OTP (runs in background, logs to console if SMTP not configured)
-    await sendVerificationOtp(email, otp);
 
     // Audit Log
     await AuditLog.create({
-      action: 'USER_REGISTER_INIT',
+      action: 'USER_REGISTER',
       actor: email,
       actorRole: 'student',
-      details: `Student registration initiated for ${name} (${rollNumber})`,
+      details: `Student registered successfully: ${name} (${rollNumber})`,
       ipAddress: req.ip
     });
 
     res.status(201).json({
-      message: 'Registration initiated. OTP sent to your email address.',
-      email: user.email
+      message: 'Registration successful! You are now logged in.',
+      token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        rollNumber: user.rollNumber,
+        department: user.department,
+        clubName: user.clubName,
+        contactNumber: user.contactNumber,
+        role: 'student'
+      }
     });
   } catch (error) {
     console.error(error);
@@ -143,20 +144,6 @@ router.post('/login', async (req, res) => {
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    if (!user.isVerified) {
-      // Re-trigger OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.verificationOtp = otp;
-      user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-      await user.save();
-      await sendVerificationOtp(email, otp);
-
-      return res.status(403).json({
-        message: 'Account not verified. A new OTP has been sent to your email.',
-        unverified: true
-      });
     }
 
     const isMatch = await user.comparePassword(password);
