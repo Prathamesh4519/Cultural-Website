@@ -161,19 +161,23 @@ const Register = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300">Club Name (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-300">Club Name *</label>
                 <div className="relative mt-1">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
                     <Club size={15} />
                   </span>
-                  <input
-                    type="text"
+                  <select
                     name="clubName"
                     value={formData.clubName}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-slate-800 bg-slate-950/80 py-2 pl-9 pr-4 text-xs text-white placeholder-slate-500 focus:border-brand-orange focus:outline-none"
-                    placeholder="Music Club"
-                  />
+                    required
+                    className="w-full rounded-lg border border-slate-800 bg-slate-950/80 py-2 pl-9 pr-4 text-xs text-white focus:border-brand-orange focus:outline-none"
+                  >
+                    <option value="" className="bg-slate-900">-- Select Club --</option>
+                    <option value="Crescendo" className="bg-slate-900">Crescendo</option>
+                    <option value="Estoria" className="bg-slate-900">Estoria</option>
+                    <option value="D-Taraxia" className="bg-slate-900">D-Taraxia</option>
+                  </select>
                 </div>
               </div>
             </div>

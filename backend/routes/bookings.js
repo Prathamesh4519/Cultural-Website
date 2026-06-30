@@ -265,8 +265,8 @@ router.post('/', protect, restrictTo('student'), async (req, res) => {
       }
     }
 
-    // Create the booking
-    const booking = await Booking.create({
+    // Create the booking (Auto-approved under FCFS rule)
+    const booking = new Booking({
       student: req.user._id,
       room: roomId,
       studentName: req.user.name,
@@ -282,38 +282,41 @@ router.post('/', protect, restrictTo('student'), async (req, res) => {
       participantsCount,
       equipment: equipment || [],
       additionalNotes: additionalNotes || '',
-      status: 'Pending'
+      status: 'Approved' // FCFS auto-approve
     });
 
-    // Create system notification for Admin
+    // Generate QR Code immediately
+    const qrCodeDataUrl = await generateQR(booking._id.toString());
+    booking.qrCode = qrCodeDataUrl;
+    await booking.save();
+
+    // Create system notification for Student
     await Notification.create({
-      recipient: '000000000000000000000000', // placeholder or look up superadmin/owner
-      recipientModel: 'Admin',
-      title: 'New Booking Request',
-      message: `${req.user.name} requested ${room.name} on ${finalBookingDate.toLocaleDateString()}`
+      recipient: req.user._id,
+      recipientModel: 'User',
+      title: 'Booking Confirmed!',
+      message: `Your booking for ${room.name} on ${finalBookingDate.toLocaleDateString()} has been auto-approved (First Come First Serve).`
     });
 
     // Audit Log
     await AuditLog.create({
-      action: 'BOOKING_CREATE',
+      action: 'BOOKING_CREATE_AUTO_APPROVE',
       actor: req.user.email,
       actorRole: 'student',
-      details: `Created pending booking request for ${room.name} on ${finalBookingDate.toLocaleDateString()} (${startTime}-${endTime})`,
+      details: `Auto-approved FCFS booking for ${room.name} on ${finalBookingDate.toLocaleDateString()} (${startTime}-${endTime})`,
       ipAddress: req.ip
     });
 
-    // Send email to Room Owners/Admins (Find admins and notify them)
-    const owners = await Admin.find({ $or: [{ role: 'admin' }, { managedRooms: roomId }] });
-    const notifyEmail = owners.length > 0 ? owners[0].email : (process.env.SMTP_USER || 'admin@culturespace.edu');
-    await sendBookingRequestEmail(notifyEmail, booking, room.name);
+    // Send confirmation email with QR code directly to the student
+    await sendBookingApprovalEmail(booking, room.name);
 
     // Notify connected websockets (real-time updates)
     if (req.app.get('io')) {
-      req.app.get('io').emit('bookingUpdated', { bookingId: booking._id, status: 'Pending' });
+      req.app.get('io').emit('bookingUpdated', { bookingId: booking._id, status: 'Approved' });
     }
 
     res.status(201).json({
-      message: 'Booking request submitted successfully! Pending administrator approval.',
+      message: 'Booking confirmed and approved automatically (First Come First Serve)!',
       booking
     });
   } catch (error) {

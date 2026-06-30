@@ -36,8 +36,12 @@ const BookRoom = () => {
           api.get('/rooms'),
           api.get('/equipment')
         ]);
-        setRooms(roomsRes.data.filter(r => r.isActive));
+        const activeRooms = roomsRes.data.filter(r => r.isActive);
+        setRooms(activeRooms);
         setEquipmentList(equipRes.data);
+        if (activeRooms.length === 1) {
+          setSelectedRoomId(activeRooms[0]._id);
+        }
       } catch (err) {
         console.error(err);
         toast.error('Failed to load room or equipment data');
@@ -131,7 +135,7 @@ const BookRoom = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">Cultural Room Reservation Form</h3>
-                <p className="text-[10px] text-slate-455">Fill in details. The booking remains Pending until approved.</p>
+                <p className="text-[10px] text-brand-orange font-semibold">Bookings are instantly auto-approved on a first-come, first-served basis if the slot is free.</p>
               </div>
             </div>
 

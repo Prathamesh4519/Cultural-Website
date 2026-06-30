@@ -106,38 +106,20 @@ const seedDatabase = async () => {
     // 3. Seed Rooms
     const roomCount = await Room.countDocuments();
     if (roomCount === 0) {
-      console.log('Seeding default cultural rooms...');
+      console.log('Seeding default cultural room...');
       const defaultRooms = [
         {
-          name: 'Music Room',
-          description: 'A soundproofed space equipped with premium acoustic panels, instrument amplifiers, and audio recording mixers. Perfect for music clubs, band practices, and individual jam sessions.',
-          capacity: 15,
-          facilities: ['Soundproof Walls', 'Guitar Amps', 'Audio Mixer', 'AC'],
-          timings: { open: '08:00', close: '20:00' },
-          maintenanceDays: ['Sunday'],
-          maxDuration: 3
-        },
-        {
-          name: 'Dance Room',
-          description: 'A spacious studio featuring full-length wall mirrors, shock-absorbing wooden flooring, and a surround sound speaker system. Ideal for dance troupes and choreography training.',
-          capacity: 25,
-          facilities: ['Full-Length Mirror', 'Wooden Floor', 'Surround Sound', 'AC'],
+          name: 'Cultural Room',
+          description: 'College Cultural Room shared by Crescendo, Estoria, and D-Taraxia clubs for rehearsals, script readings, jam sessions, and performances.',
+          capacity: 30,
+          facilities: ['Soundproof Panels', 'Stage Platform', 'Spotlights', 'Full-Length Mirrors', 'Instrument Amplifiers', 'Surround Sound', 'AC'],
           timings: { open: '08:00', close: '21:00' },
           maintenanceDays: ['Sunday'],
-          maxDuration: 2
-        },
-        {
-          name: 'Drama Room',
-          description: 'A versatile theatre rehearsal space featuring professional spotlight rigs, acoustic drapes, and properties. Designed for theatre clubs, street play practices, and script readings.',
-          capacity: 20,
-          facilities: ['Rehearsal Stage', 'Spotlights', 'Props Storage', 'AC'],
-          timings: { open: '09:00', close: '19:00' },
-          maintenanceDays: ['Sunday'],
-          maxDuration: 4
+          maxDuration: 3
         }
       ];
       await Room.insertMany(defaultRooms);
-      console.log('Default Rooms Seeded.');
+      console.log('Default Cultural Room Seeded.');
     }
   } catch (error) {
     console.error('Error seeding database:', error);
