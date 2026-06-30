@@ -145,7 +145,7 @@ router.post('/', protect, restrictTo('student'), async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
-    if (!room.isActive) {
+    if (room.isActive === false) {
       return res.status(400).json({ message: 'This room is currently unavailable' });
     }
 
