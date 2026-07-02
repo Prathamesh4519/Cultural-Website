@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import admin from 'firebase-admin';
 
 // Local database directory
 const DATA_DIR = path.resolve('data');
@@ -8,28 +9,121 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Helper to read data from local JSON file
-const readData = (collectionName) => {
-  const filePath = path.join(DATA_DIR, `${collectionName.toLowerCase()}.json`);
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
+// Initialize Firebase Admin
+let db = null;
+const rootKeyPath = path.resolve('firebase-key.json');
+const backendKeyPath = path.resolve('backend', 'firebase-key.json');
+const keyPath = fs.existsSync(rootKeyPath) ? rootKeyPath : (fs.existsSync(backendKeyPath) ? backendKeyPath : null);
+
+if (keyPath) {
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw || '[]');
+    const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf-8'));
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: 'https://cultural-room-default-rtdb.asia-southeast1.firebasedatabase.app/'
+    });
+    db = admin.database();
+    console.log(`[FIREBASE] Connected to Realtime Database successfully using key: ${path.basename(keyPath)}`);
   } catch (err) {
-    console.error(`Error reading ${collectionName} data:`, err);
-    return [];
+    console.error('[FIREBASE] Error initializing Firebase Admin SDK:', err);
+  }
+} else {
+  console.log('[FIREBASE] Notice: firebase-key.json not found in project root or backend folder. Falling back to local JSON database.');
+}
+
+// Helper to read data asynchronously from Firebase Realtime Database
+const readData = async (collectionName) => {
+  const collName = collectionName.toLowerCase();
+  if (db) {
+    try {
+      const ref = db.ref(collName);
+      const snapshot = await ref.once('value');
+      const val = snapshot.val();
+      if (!val) return [];
+      
+      const list = [];
+      if (typeof val === 'object') {
+        Object.keys(val).forEach(key => {
+          list.push({ _id: key, ...val[key] });
+        });
+      }
+      return list;
+    } catch (err) {
+      console.error(`[FIREBASE] Error reading collection ${collName}:`, err);
+      return [];
+    }
+  } else {
+    const filePath = path.join(DATA_DIR, `${collName}.json`);
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(raw || '[]');
+    } catch (err) {
+      console.error(`Error reading local ${collName} data:`, err);
+      return [];
+    }
   }
 };
 
-// Helper to write data to local JSON file
-const writeData = (collectionName, data) => {
-  const filePath = path.join(DATA_DIR, `${collectionName.toLowerCase()}.json`);
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    console.error(`Error writing ${collectionName} data:`, err);
+// Helper to write data asynchronously
+const writeData = async (collectionName, dataList) => {
+  const collName = collectionName.toLowerCase();
+  if (db) {
+    try {
+      for (const item of dataList) {
+        const { _id, ...cleanItem } = item;
+        await db.ref(`${collName}/${_id}`).set(cleanItem);
+      }
+    } catch (err) {
+      console.error(`[FIREBASE] Error writing collection ${collName}:`, err);
+    }
+  } else {
+    const filePath = path.join(DATA_DIR, `${collName}.json`);
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(dataList, null, 2), 'utf-8');
+    } catch (err) {
+      console.error(`Error writing local ${collName} data:`, err);
+    }
+  }
+};
+
+// Helper to write a single document directly (highly efficient for Firebase Realtime Database)
+const writeDoc = async (collectionName, docId, docData) => {
+  const collName = collectionName.toLowerCase();
+  if (db) {
+    try {
+      const { _id, ...cleanData } = docData;
+      await db.ref(`${collName}/${docId}`).set(cleanData);
+    } catch (err) {
+      console.error(`[FIREBASE] Error writing document ${docId} in ${collName}:`, err);
+    }
+  } else {
+    const dataList = await readData(collectionName);
+    const index = dataList.findIndex(item => item._id === docId);
+    if (index >= 0) {
+      dataList[index] = docData;
+    } else {
+      dataList.push(docData);
+    }
+    await writeData(collectionName, dataList);
+  }
+};
+
+// Helper to delete a single document directly
+const deleteDoc = async (collectionName, docId) => {
+  const collName = collectionName.toLowerCase();
+  if (db) {
+    try {
+      await db.ref(`${collName}/${docId}`).remove();
+    } catch (err) {
+      console.error(`[FIREBASE] Error deleting document ${docId} from ${collName}:`, err);
+    }
+  } else {
+    const dataList = await readData(collectionName);
+    const filtered = dataList.filter(item => item._id !== docId);
+    await writeData(collectionName, filtered);
   }
 };
 
@@ -43,7 +137,6 @@ const evaluateQuery = (doc, query) => {
   if (!query || Object.keys(query).length === 0) return true;
 
   for (const [key, filter] of Object.entries(query)) {
-    // 1. $or Operator
     if (key === '$or') {
       if (!Array.isArray(filter)) continue;
       const matchAny = filter.some(q => evaluateQuery(doc, q));
@@ -51,19 +144,16 @@ const evaluateQuery = (doc, query) => {
       continue;
     }
 
-    // 2. Exact match check
     if (filter === null || typeof filter !== 'object' || filter instanceof Date) {
       const docVal = doc[key] instanceof Date ? doc[key].toISOString() : doc[key];
       const filterVal = filter instanceof Date ? filter.toISOString() : filter;
 
-      // Handle simple string comparisons (e.g. ObjectId cast)
       if (docVal?.toString() !== filterVal?.toString()) {
         return false;
       }
       continue;
     }
 
-    // 3. Operators: $in, $gte, $lt, $ne
     for (const [op, val] of Object.entries(filter)) {
       if (op === '$in') {
         if (!Array.isArray(val)) return false;
@@ -126,9 +216,9 @@ class Query {
     return this;
   }
 
-  // Executes query
+  // Executes query asynchronously
   async exec() {
-    let list = readData(this.collectionName);
+    let list = await readData(this.collectionName);
     
     // Filter
     list = list.filter(doc => evaluateQuery(doc, this.query));
@@ -165,7 +255,7 @@ class Query {
       list = list.slice(0, this._limit);
     }
 
-    // Convert list items to Document instances so pre-save / save / instance methods work
+    // Convert list items to Document instances
     const schema = schemas[this.collectionName];
     const docs = list.map(item => new Document(item, this.collectionName, schema));
 
@@ -174,7 +264,6 @@ class Query {
       for (const doc of docs) {
         const id = doc[pop.path];
         if (id) {
-          // Detect model from schema field ref or guess
           let refModelName = '';
           const schemaDef = schema.definition[pop.path];
           if (schemaDef && schemaDef.ref) {
@@ -184,8 +273,7 @@ class Query {
           }
 
           if (refModelName) {
-            const refData = readData(refModelName);
-            // Handle single ref vs array ref
+            const refData = await readData(refModelName);
             if (Array.isArray(id)) {
               doc[pop.path] = id.map(refId => {
                 const match = refData.find(item => item._id === refId.toString());
@@ -205,7 +293,6 @@ class Query {
     return docs;
   }
 
-  // Then handler for async-await compatibility
   then(resolve, reject) {
     return this.exec().then(resolve, reject);
   }
@@ -217,11 +304,9 @@ class Document {
     Object.assign(this, data);
     this._id = data._id || generateId();
     
-    // Define hidden metadata
     Object.defineProperty(this, '_collectionName', { value: collectionName, enumerable: false });
     Object.defineProperty(this, '_schema', { value: schema, enumerable: false });
 
-    // Attach instance methods from schema definitions
     if (schema && schema.methods) {
       Object.keys(schema.methods).forEach(methodName => {
         this[methodName] = schema.methods[methodName].bind(this);
@@ -238,11 +323,9 @@ class Document {
     return true;
   }
 
-  // Emulates document save (updates/adds details to local JSON db)
   async save() {
     const schema = this._schema;
     
-    // Execute registered pre-save hooks (e.g. password bcrypt hashing)
     if (schema && schema.preHooks?.save) {
       for (const hook of schema.preHooks.save) {
         await new Promise((resolve, reject) => {
@@ -254,19 +337,8 @@ class Document {
       }
     }
 
-    const dataList = readData(this._collectionName);
-    const index = dataList.findIndex(item => item._id === this._id.toString());
-    
-    // Build serialized object (strip methods/getters)
     const serialized = this.toObject();
-
-    if (index >= 0) {
-      dataList[index] = serialized;
-    } else {
-      dataList.push(serialized);
-    }
-
-    writeData(this._collectionName, dataList);
+    await writeDoc(this._collectionName, this._id.toString(), serialized);
     return this;
   }
 
@@ -274,7 +346,6 @@ class Document {
     const obj = {};
     for (const [key, val] of Object.entries(this)) {
       if (typeof val !== 'function') {
-        // Deep copy sub-objects/arrays to avoid reference leaks
         if (val && typeof val === 'object' && !(val instanceof Date)) {
           if (Array.isArray(val)) {
             obj[key] = val.map(item => item instanceof Document ? item.toObject() : JSON.parse(JSON.stringify(item)));
@@ -301,8 +372,12 @@ const schemas = {};
 // Main emulated Mongoose Exports
 const mongooseMock = {
   connect: async (uri, options) => {
-    console.log(`[MOCK DB] Emulating connection to local JSON database folder: ${DATA_DIR}`);
-    return { connection: { host: 'JSON_Local_Memory' } };
+    if (db) {
+      console.log('[FIREBASE] Connected to Firebase Realtime Database successfully.');
+    } else {
+      console.log(`[MOCK DB] Emulating connection to local JSON database folder: ${DATA_DIR}`);
+    }
+    return { connection: { host: db ? 'Firebase_Realtime_Database' : 'JSON_Local_Memory' } };
   },
 
   Schema: class Schema {
@@ -322,7 +397,6 @@ const mongooseMock = {
   model: (modelName, schema) => {
     schemas[modelName] = schema;
 
-    // Emulated Model class
     class Model {
       constructor(data) {
         return new Document(data, modelName, schema);
@@ -370,11 +444,11 @@ const mongooseMock = {
       }
 
       static async findByIdAndDelete(id) {
-        const list = readData(modelName);
+        const list = await readData(modelName);
         const index = list.findIndex(item => item._id === id.toString());
         if (index >= 0) {
-          const deleted = list.splice(index, 1)[0];
-          writeData(modelName, list);
+          const deleted = list[index];
+          await deleteDoc(modelName, id.toString());
           return new Document(deleted, modelName, schema);
         }
         return null;
@@ -384,7 +458,6 @@ const mongooseMock = {
         const doc = await Model.findById(id);
         if (!doc) return null;
         
-        // Emulate simple field update
         const fields = update.$set || update;
         Object.assign(doc, fields);
         await doc.save();
@@ -417,7 +490,6 @@ const mongooseMock = {
   }
 };
 
-// ObjectId type descriptor compatibility
 mongooseMock.Schema.Types = {
   ObjectId: String
 };
